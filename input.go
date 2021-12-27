@@ -33,53 +33,108 @@ func HandleKeys(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, 
 
 func UpdateWorld() {
 	var speed float32 = .04
-	var vel [3]float32
-	if keysPressed[glfw.KeyW] == KeyDown {
-		vel[2] -= 1
-	}
-	if keysPressed[glfw.KeyS] == KeyDown {
-		vel[2] += 1
-	}
+	velocity = [3]float32{0, 0, 0}
 
-	if keysPressed[glfw.KeyA] == KeyDown {
-		vel[0] -= 1
-	}
-	if keysPressed[glfw.KeyD] == KeyDown {
-		vel[0] += 1
-	}
+	if cameraType == 0 {
+		if keysPressed[glfw.KeyW] == KeyDown {
+			velocity[2] += 1
+		}
+		if keysPressed[glfw.KeyS] == KeyDown {
+			velocity[2] -= 1
+		}
 
-	if keysPressed[glfw.KeyZ] == KeyDown {
-		vel[1] += 1
-	}
-	if keysPressed[glfw.KeyX] == KeyDown {
-		vel[1] -= 1
-	}
+		if keysPressed[glfw.KeyA] == KeyDown {
+			velocity[0] += 1
+		}
+		if keysPressed[glfw.KeyD] == KeyDown {
+			velocity[0] -= 1
+		}
 
-	vel = Normalize(vel)
-	vel = Mul(vel, speed)
-
-	if doJoystick {
-		jaxes := glfw.Joystick1.GetAxes()
-		jspeed := .2 * jaxes[4]
-
-		if len(jaxes) != 0 {
-			if jaxes[1] != 0 {
-				vel[2] = -jaxes[1] * jspeed
-			}
-			if jaxes[2] != 0 {
-				vel[1] = jaxes[2] * jspeed
-
-			}
-			if jaxes[0] != 0 {
-				vel[0] = jaxes[0] * jspeed
-			}
+		if keysPressed[glfw.KeyZ] == KeyDown {
+			velocity[1] += 1
+		}
+		if keysPressed[glfw.KeyX] == KeyDown {
+			velocity[1] -= 1
+		}
+		if keysPressed[glfw.KeyQ] == KeyDown {
+			azimuth += 0.03
+			SceneChanged = true
 
 		}
+		if keysPressed[glfw.KeyE] == KeyDown {
+			azimuth -= 0.03
+
+			SceneChanged = true
+
+		}
+
+		velocity = Normalize(velocity)
+		velocity = Mul(velocity, speed)
+		if doJoystick {
+			jaxes := glfw.Joystick1.GetAxes()
+			jspeed := .2 * jaxes[4]
+
+			if len(jaxes) != 0 {
+				if jaxes[1] != 0 {
+					velocity[2] = jaxes[1] * jspeed
+				}
+				if jaxes[2] != 0 {
+					velocity[1] = jaxes[2] * jspeed
+
+				}
+				if jaxes[3] != 0 {
+					velocity[0] = -jaxes[3] * jspeed
+				}
+				if jaxes[0] != 0 {
+					azimuth -= jaxes[0] * 0.05
+					SceneChanged = true
+				}
+
+				if abs(altitude-(jaxes[5])) > 0.0001 {
+					altitude = (jaxes[5])
+					SceneChanged = true
+				}
+
+			}
+		}
+		velocity = rotateXV(velocity, -altitude)
+		velocity = rotateYV(velocity, -azimuth)
+
+	} else if cameraType == 1 {
+
 	}
-	if vel[0] != 0 || vel[1] != 0 || vel[2] != 0 {
+	if velocity[0] != 0 || velocity[1] != 0 || velocity[2] != 0 {
 		SceneChanged = true
 	}
-	origin = Add(origin, vel)
+	origin = Add(origin, velocity)
+}
+
+func abs(n float32) float32 {
+	if n > 0 {
+		return n
+	}
+	return -n
+}
+func rotateYV(v [3]float32, ang float32) [3]float32 {
+	c := float32(math.Cos(float64(ang)))
+	s := float32(math.Sin(float64(ang)))
+
+	return [3]float32{
+		v[0]*c - v[2]*s,
+		v[1],
+		v[2]*c + v[0]*s,
+	}
+}
+
+func rotateXV(v [3]float32, ang float32) [3]float32 {
+	c := float32(math.Cos(float64(ang)))
+	s := float32(math.Sin(float64(ang)))
+
+	return [3]float32{
+		v[0],
+		v[1]*c - v[2]*s,
+		v[2]*c + v[1]*s,
+	}
 }
 
 func Add(a, b [3]float32) [3]float32 {

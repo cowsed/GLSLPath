@@ -16,12 +16,14 @@ const (
 	WindowWidth  = 1920 / 1.5
 	WindowHeight = 1080 / 1.5
 	doJoystick   = false
+	cameraType   = 0
 )
+
+// var JoystickPointer = nil
 
 var dimensions = [2]float32{float32(WindowWidth), float32(WindowHeight)}
 
 func main() {
-	fmt.Println(float32(2) / float32(12))
 	var FrameTime time.Duration
 	//Make GL stuff happen on main thread
 	runtime.LockOSThread()
@@ -82,6 +84,7 @@ func main() {
 
 	if doJoystick {
 		log.Println("Using Joystick", glfw.Joystick1.GetName())
+
 	}
 	glfw.GetCurrentContext().SetKeyCallback(HandleKeys)
 	//Loop
@@ -99,9 +102,14 @@ func main() {
 		//Find id at mouse position
 		//Draw imgui stuff
 		imgui.Begin("Control")
+		imgui.Text(fmt.Sprint("Frame:", frame))
 		imgui.Text(fmt.Sprint("Frame Time:", FrameTime))
-		imgui.Text(fmt.Sprint("Render Frames:", sameFrames))
+		imgui.Text(fmt.Sprintf("FPS %.2f", imgui.CurrentIO().Framerate()))
 
+		imgui.Separator()
+		imgui.Text(fmt.Sprint("Render Frames:", sameFrames))
+		imgui.Text(fmt.Sprint("Samples Calculated:", samplesDone))
+		imgui.Separator()
 		imgui.Text("Camera Parameters")
 		imgui.InputInt("Max Bounces", &maxBounces)
 		imgui.InputInt("SamplesPerFrame", &SamplesPerFrame)
@@ -109,12 +117,19 @@ func main() {
 			SamplesPerFrame = 100
 		}
 
-		imgui.Image(imgui.TextureID(idTexHandle), imgui.Vec2{100, 100})
-
 		changed := false
 		changed = changed || imgui.DragFloat3V("origin", &origin, 0.001, -100, 100, "%g", 0)
 
 		changed = imgui.DragFloatV("Focal Length", &focalLength, 0.001, -100, 100, "%g", 0) || changed
+		changed = imgui.DragFloatV("Field of View", &fov, 0.05, 0, 180, "%g", 0) || changed
+
+		changed = imgui.DragFloatV("Azimuth", &azimuth, 0.005, -2*3.14159, 2*3.14159+1, "%g", 0) || changed
+		if azimuth < 0 {
+			azimuth += 2 * 3.14169
+		} else if azimuth > 2*3.14169 {
+			azimuth -= 2 * 3.14169
+		}
+		changed = imgui.DragFloatV("Altitude", &altitude, 0.005, -3.14159/4, 3.14159/4, "%g", 0) || changed
 
 		if changed {
 			SceneChanged = true
@@ -122,7 +137,10 @@ func main() {
 		if imgui.Button("NewFrame") {
 			SceneChanged = true
 		}
-
+		imgui.Text(fmt.Sprint(resultFBHandle, idTexHandle, environmentHandle))
+		imgui.Image(imgui.TextureID(idTexHandle), imgui.Vec2{200, 200})
+		imgui.Image(imgui.TextureID(resultTexHandle), imgui.Vec2{200, 200})
+		imgui.Image(imgui.TextureID(environmentHandle), imgui.Vec2{200, 200})
 		imgui.End()
 		//Safegaurds
 		if maxBounces <= 0 {
@@ -137,13 +155,11 @@ func main() {
 		//Finish imgui
 		imgui.Render()
 
-		UpdateUniforms()
 		Draw()
 
 		imguiRenderer.Render(dimensions, dimensions, imgui.RenderedDrawData())
 
 		window.SwapBuffers()
-		//time.Sleep(time.Millisecond * 200)
 		FrameTime = time.Since(timeStart)
 
 	}

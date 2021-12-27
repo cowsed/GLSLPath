@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"image"
+	_ "image/jpeg"
+	"image/png"
 	"log"
 	"os"
 	"strings"
@@ -9,6 +12,7 @@ import (
 	_ "embed"
 
 	"github.com/go-gl/gl/v4.6-core/gl"
+	_ "github.com/mdouchement/hdr/codec/rgbe"
 )
 
 var points []float32 = []float32{
@@ -39,27 +43,35 @@ var fragmentSource = uniformSource + utilSource + materialSource + fragmentMainS
 var vertexSource string
 
 var (
-	vboHandle       uint32
-	vaoHandle       uint32
-	programHandle   uint32
-	resultFBHandle  uint32
-	resultTexHandle uint32
-	idFBHandle      uint32
-	idTexHandle     uint32
+	vboHandle         uint32
+	vaoHandle         uint32
+	programHandle     uint32
+	resultFBHandle    uint32
+	resultTexHandle   uint32
+	idFBHandle        uint32
+	idTexHandle       uint32
+	environmentHandle uint32
 )
 
 func Draw() {
+	if SceneChanged {
+		sameFrames = 0
+		samplesDone = 0
+		SceneChanged = false
+	}
+	samplesDone += uint32(SamplesPerFrame)
+	UpdateUniforms()
+
 	loc := gl.GetUniformLocation(programHandle, gl.Str("render_stage\x00"))
 
 	//Draw ray tracing
 	gl.BindFramebuffer(gl.FRAMEBUFFER, resultFBHandle)
 
 	gl.Uniform1i(loc, 2)
-	gl.ClearColor(0, 0, 0, 1)
+	gl.ClearColor(1, 0, 0, 1)
 
 	if SceneChanged {
-		sameFrames = 0
-		SceneChanged = false
+
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	}
 
@@ -164,8 +176,64 @@ func InitRender() {
 	//Bring back the default
 	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 	gl.BindTexture(gl.TEXTURE_2D, gl.TEXTURE0)
+
 	//Builds shader program
 	BuildProgram()
+
+	//Load HDRI
+	//environmentHandle = LoadHDRI("Environments/cannon2.jpg")
+}
+func LoadHDRI(fname string) uint32 {
+	log.Println("Loading Image")
+	fi, err := os.Open(fname)
+	if err != nil {
+		panic(err)
+	}
+	defer fi.Close()
+
+	m, _, err := image.Decode(fi)
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("Loading image %dx%d\n", m.Bounds().Dx(), m.Bounds().Dy())
+	log.Println(m.Bounds())
+	imgwidth := m.Bounds().Dx()
+	imgheight := m.Bounds().Dy()
+
+	i := image.NewRGBA(m.Bounds())
+	for x := 0; x < imgwidth; x++ {
+		for y := 0; y < imgheight; y++ {
+			i.Set(x, y, m.At(x, y))
+		}
+	}
+
+	f, _ := os.Create("f.png")
+	png.Encode(f, i)
+	f.Close()
+
+	var texHandle uint32
+	gl.GenTextures(1, &texHandle)
+	internalFmt := int32(gl.SRGB_ALPHA)
+	format := uint32(gl.RGBA)
+	width := int32(m.Bounds().Dx())
+	height := int32(m.Bounds().Dy())
+	pixType := uint32(gl.UNSIGNED_BYTE)
+	dataPtr := gl.Ptr(i.Pix)
+
+	gl.BindTexture(gl.TEXTURE_2D, texHandle)
+	//gl.TexParameteri(target, gl.TEXTURE_WRAP_R, wrapR)
+	//gl.TexParameteri(target, gl.TEXTURE_WRAP_S, wrapS)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR) // minification filter
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR) // magnification filter
+
+	gl.TexImage2D(gl.TEXTURE_2D, 0, internalFmt, width, height, 0, format, pixType, dataPtr)
+
+	gl.GenerateMipmap(texHandle)
+
+	gl.BindTexture(gl.TEXTURE_2D, 0)
+	log.Println("Finished Loading HDRI")
+
+	return texHandle
 }
 
 //OpenGL Stuff
@@ -183,7 +251,7 @@ func BuildProgram() {
 	//Compile Fragment Shader
 	fragmentShader, err := compileShader(fragmentSource+"\x00", gl.FRAGMENT_SHADER)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Fatal(err)
 		return
 	}
 

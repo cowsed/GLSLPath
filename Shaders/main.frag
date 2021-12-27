@@ -16,7 +16,7 @@ float hit_sphere(in Ray r, in Sphere s) {
 hit_record HitAllSpheres(in Ray r){
     hit_record hr=   hit_record(RayAt(r,far_distance), vec3(0), far_distance, true,0,0);
     float t;
-    for (int i=0; i<spherePositions.length(); i++){
+    for (int i=0; i<spherePositions.length()-6; i++){
         
         Sphere s = Sphere(spherePositions[i], sphereRadii[i]);
         t = hit_sphere(r, s);
@@ -37,6 +37,20 @@ hit_record HitAllSpheres(in Ray r){
     return hr;
 }
 
+vec3 GetIDs(Ray initial_r){
+    hit_record hr;
+    hr = HitAllSpheres(initial_r);
+
+    //Find Ids
+    if (render_stage==1){
+        if (hr.t==far_distance){
+            return vec3(1,0,0);//Sky's id is -1
+        } else {
+            return vec3(0,0,float(hr.object_index)/12.0);
+        }
+    }
+
+}
 
 vec3 ray_color(Ray initial_r, int depth){
     hit_record hr;
@@ -45,28 +59,17 @@ vec3 ray_color(Ray initial_r, int depth){
 
     float fractionalPart = 1;
     
-
-
     vec3 total_color = vec3(1);
     for (int i=depth; i>0; i--){
         hr = HitAllSpheres(r);
 
-        //Find Ids
-        if (render_stage==1){
-            if (hr.t==far_distance){
-                return vec3(1,0,0);//Sky's id is -1
-            } else {
-                return vec3(0,0,float(hr.object_index)/12.0);//intBitsToFloat
-            }
-        }
-
+        //Hit the sky
         if (hr.t==far_distance){
             total_color*=ColorSkyRay(r);
             break;
         }
 
         //Hit Object
-
         Ray scattered;
 
         vec3 c;
@@ -82,18 +85,6 @@ vec3 ray_color(Ray initial_r, int depth){
         r=scattered;
 
     }
-
-
-//  else {
-//         vec3 attenuation=vec3(0,0,0);
-//         Ray scattered=Ray(vec3(0,0,0),vec3(0,0,0));
-//         //Material mat = Material(vec3(1,0,0));//materialColors[hr.mat_index] 
-//         if (true){//Scatter(mat,r,hr,attenuation,scattered)
-//             return attenuation*ray_color(scattered,depth-1);
-//         }
-//         return vec3(0);
-//     }
-
     //Hit nothing, return sky color
     return total_color;
 }
@@ -105,14 +96,10 @@ void main() {
         return;
     } else if (render_stage==1){
         Ray r1 = get_ray(origin, uv);
-        vec3 col;
-        col=ray_color(r1,maxBounces);
-        //col.xyz=vec3(1);
-        //col.z/=10.0;//divide ids by total number of them for viewing pleasure
-        //col.x=col.z;
-        //col.y=col.z;
-        //col.x=1;
-        frag_colour=vec4(col, 1);
+        vec3 idInfo;
+        idInfo=GetIDs(r1);
+
+        frag_colour=vec4(idInfo, 1);
         //frag_colour=vec4(uv.x,0,1,1);
         return;
     }
@@ -137,15 +124,18 @@ void main() {
     col.x=sqrt(col.x);
     col.y=sqrt(col.y);    
     col.z=sqrt(col.z);
+
+
+    //accumulate colors
     vec3 oldCol = texture(previousResult,uv).xyz;
         
     float oldAmt = (sameFrame-1)/sameFrame;
     float newAmt = (1)/sameFrame;
     vec3 newCol = oldAmt*oldCol + newAmt*col;
 
-    if (sameFrame==1||sameFrame==0){
+    if (sameFrame==0){
         newCol=col;
     }
-
+    //newCol=vec3(1,0,0);
     frag_colour = vec4(newCol, 1);
 }
