@@ -6,7 +6,6 @@ import (
 	"math"
 
 	"github.com/go-gl/gl/v4.6-core/gl"
-
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/inkyblackness/imgui-go/v4"
 )
@@ -173,16 +172,20 @@ func HandleClick(window *glfw.Window) {
 		pixel := []float32{1, 0, 0, 0}
 		cursorX, cursorY := window.GetCursorPos()
 		log.Println("Picking at", cursorX, cursorY)
-		gl.BindFramebuffer(gl.FRAMEBUFFER, idFBHandle)
+		gl.BindFramebuffer(gl.FRAMEBUFFER, resultFBHandle)
+		gl.ReadBuffer(gl.COLOR_ATTACHMENT1)
+
 		gl.ReadPixels(int32(cursorX), int32(WindowHeight-cursorY), 1, 1, gl.RGBA, gl.FLOAT, gl.Ptr(&pixel[0]))
+		gl.ReadBuffer(gl.COLOR_ATTACHMENT0)
+
 		gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 		fmt.Println(pixel)
-
+		//
 		if pixel[0] == 1 {
 			//Is the sky
 			return
 		}
-		sphereID := int(pixel[2]*float32(NumSpheres) + .1)
+		sphereID := int(pixel[2]) //int(pixel[2]*float32(NumSpheres) + .1)
 		if sphereID < NumSpheres {
 			currentObject = int32(sphereID)
 		}

@@ -48,7 +48,6 @@ var (
 	programHandle     uint32
 	resultFBHandle    uint32
 	resultTexHandle   uint32
-	idFBHandle        uint32
 	idTexHandle       uint32
 	environmentHandle uint32
 )
@@ -64,8 +63,10 @@ func Draw() {
 
 	loc := gl.GetUniformLocation(programHandle, gl.Str("render_stage\x00"))
 
-	//Draw ray tracing
+	//Draw ray tracing and IDs
 	gl.BindFramebuffer(gl.FRAMEBUFFER, resultFBHandle)
+	bufs := []uint32{gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1}
+	gl.DrawBuffers(2, &bufs[0])
 
 	gl.Uniform1i(loc, 2)
 	gl.ClearColor(1, 0, 0, 1)
@@ -87,23 +88,24 @@ func Draw() {
 	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(points)/3))
 
 	////Draw ids
-	gl.BindFramebuffer(gl.FRAMEBUFFER, idFBHandle)
-
-	gl.Uniform1i(loc, 1)
-
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-	gl.Enable(gl.DEPTH_TEST)
-	gl.DepthFunc(gl.LESS)
-	gl.ClearColor(0, 1, 1, 1)
-
-	gl.Viewport(0, 0, WindowWidth, WindowHeight)
-
-	gl.UseProgram(programHandle)
-	gl.BindVertexArray(vaoHandle)
-
-	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(points)/3))
+	//gl.BindFramebuffer(gl.FRAMEBUFFER, idFBHandle)
+	//
+	//gl.Uniform1i(loc, 1)
+	//
+	//gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	//gl.Enable(gl.DEPTH_TEST)
+	//gl.DepthFunc(gl.LESS)
+	//gl.ClearColor(0, 1, 1, 1)
+	//
+	//gl.Viewport(0, 0, WindowWidth, WindowHeight)
+	//
+	//gl.UseProgram(programHandle)
+	//gl.BindVertexArray(vaoHandle)
+	//
+	//gl.DrawArrays(gl.TRIANGLES, 0, int32(len(points)/3))
 
 	//Draw results to screen
+	//Render full thing to screen
 	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 
 	gl.Uniform1i(loc, 0)
@@ -158,20 +160,16 @@ func InitRender() {
 	gl.BindFramebuffer(gl.FRAMEBUFFER, resultFBHandle)
 	gl.FramebufferTexture(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, resultTexHandle, 0)
 
-	//Generate id FB
-	gl.GenFramebuffers(1, &idFBHandle)
-
 	//Create id texture
 	gl.GenTextures(1, &idTexHandle)
 	gl.BindTexture(gl.TEXTURE_2D, idTexHandle)
 
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WindowWidth, WindowHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, WindowWidth, WindowHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 
 	//Connect id FB and texture
-	gl.BindFramebuffer(gl.FRAMEBUFFER, idFBHandle)
-	gl.FramebufferTexture(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, idTexHandle, 0)
+	gl.FramebufferTexture(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, idTexHandle, 0)
 
 	//Bring back the default
 	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)

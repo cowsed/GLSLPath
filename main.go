@@ -138,9 +138,9 @@ func main() {
 			SceneChanged = true
 		}
 		imgui.Text(fmt.Sprint(resultFBHandle, idTexHandle, environmentHandle))
-		imgui.Image(imgui.TextureID(idTexHandle), imgui.Vec2{200, 200})
-		imgui.Image(imgui.TextureID(resultTexHandle), imgui.Vec2{200, 200})
-		imgui.Image(imgui.TextureID(environmentHandle), imgui.Vec2{200, 200})
+		imgui.Image(imgui.TextureID(idTexHandle), imgui.Vec2{X: 200, Y: 200})
+		imgui.Image(imgui.TextureID(resultTexHandle), imgui.Vec2{X: 200, Y: 200})
+		imgui.Image(imgui.TextureID(environmentHandle), imgui.Vec2{X: 200, Y: 200})
 		imgui.End()
 		//Safegaurds
 		if maxBounces <= 0 {

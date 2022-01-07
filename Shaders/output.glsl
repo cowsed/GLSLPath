@@ -2,6 +2,7 @@
 in vec2 UV;
 
 layout(location = 0) out vec4 frag_colour;
+layout(location = 1) out vec4 frag_id;
 
 uniform vec2 windowDimensions;
 
@@ -282,16 +283,16 @@ hit_record HitAllSpheres(in Ray r){
     return hr;
 }
 
-vec3 GetIDs(Ray initial_r){
+vec4 GetIDs(Ray initial_r){
     hit_record hr;
     hr = HitAllSpheres(initial_r);
 
     //Find Ids
     if (render_stage==1){
         if (hr.t==far_distance){
-            return vec3(1,0,0);//Sky's id is -1
+            return vec4(1,0,0,0);//Sky's id is -1
         } else {
-            return vec3(0,0,float(hr.object_index)/12.0);
+            return vec4(0,0,float(hr.object_index),0);
         }
     }
 
@@ -339,14 +340,6 @@ void main() {
     if (render_stage==0){
         frag_colour = texture(previousResult, uv);
         return;
-    } else if (render_stage==1){
-        Ray r1 = get_ray(origin, uv);
-        vec3 idInfo;
-        idInfo=GetIDs(r1);
-
-        frag_colour=vec4(idInfo, 1);
-        //frag_colour=vec4(uv.x,0,1,1);
-        return;
     }
 
 
@@ -354,7 +347,10 @@ void main() {
 
     seed=random2(uv)+sameFrame;
     seed+=sin(frame);
-    Ray r1;
+    Ray r1 = get_ray(origin,uv);
+    vec4 id = GetIDs(r1);
+
+
 
     vec3 col=vec3(0);
     for (int i=0; i<SamplesPerFrame;i++){
@@ -382,5 +378,7 @@ void main() {
         newCol=col;
     }
     //newCol=vec3(1,0,0);
+ 
     frag_colour = vec4(newCol, 1);
+    frag_id = id;
 }

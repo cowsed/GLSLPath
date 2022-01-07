@@ -34,9 +34,9 @@ var (
 	camup               = [3]float32{0, 1, 0}
 	velocity            = [3]float32{0, 0, 0}
 
-	spherePositions = [NumSpheres][3]float32{{0, -1000.5, -1}, {0, 0, -1}, {-1, 0, -1}, {1, 0, -1}, {-.6, -.4, -1}, {.6, -.4, -.8}, {-.6, -.4, -.8}, {-.7, -.4, -.8}, {.7, -.4, -.8}}
-	sphereRadii     = [NumSpheres]float32{1000, .5, .5, .5, .1, .1, .1, .1, .1}
-	sphereMaterials = [NumSpheres]int32{0, 1, 2, 3, 3, 4, 5, 1, 1, 1}
+	spherePositions = [NumSpheres][3]float32{{0, -1000.5, -1}, {0, 0, -1}, {-1, 0, -1}, {1, 0, -1}, {-.6, -.4, -1}, {.6, -.4, -.8}, {-.6, -.4, -.8}, {-.7, -.4, -.8}, {.7, -.4, -.8}, {1, 1, 1}}
+	sphereRadii     = [NumSpheres]float32{1000, .5, .5, .5, .1, .1, .1, .1, .1, 1}
+	sphereMaterials = [NumSpheres]int32{0, 1, 2, 3, 3, 4, 5, 1, 1, 1, 6}
 
 	materialColors = [NumMaterials][3]float32{{.8, .8, 0}, {.7, .3, .3}, {.8, .8, .8}, {.8, .6, .2}, {0, 1, 0}, {0, 0, 1}}
 

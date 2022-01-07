@@ -2,6 +2,7 @@
 in vec2 UV;
 
 layout(location = 0) out vec4 frag_colour;
+layout(location = 1) out vec4 frag_id;
 
 uniform vec2 windowDimensions;
 
